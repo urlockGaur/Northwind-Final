@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 public class CustomerController(DataContext db, UserManager<AppUser> usrMgr) : Controller
 {
@@ -83,4 +84,36 @@ public class CustomerController(DataContext db, UserManager<AppUser> usrMgr) : C
         ModelState.AddModelError("", error.Description);
       }
     }
+
+     [Authorize(Roles = "northwind-customer")]
+    public async Task<IActionResult> ViewCart()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        var cartItems = _dataContext.CartItems
+                        .Include(ci => ci.Product)
+                        .Where(ci => ci.Customer.Email == user.Email)
+                        .ToList();
+
+        return View(cartItems);
+    }
+[Authorize(Roles = "northwind-customer")]
+public async Task<IActionResult> GetCartItems()
+{
+    var user = await _userManager.GetUserAsync(User);
+    var cartItems = _dataContext.CartItems
+                    .Include(ci => ci.Product)
+                    .Where(ci => ci.Customer.Email == user.Email)
+                    .Select(ci => new {
+                        ProductId = ci.ProductId,
+                        ProductName = ci.Product.ProductName,
+                        UnitPrice = ci.Product.UnitPrice,
+                        Quantity = ci.Quantity
+                    })
+                    .ToList();
+
+    // Log the data here to check it
+    Console.WriteLine(cartItems);
+
+    return Json(cartItems);
+}
 }

@@ -8,4 +8,10 @@ document.addEventListener("DOMContentLoaded", function() {
             bootstrap.Toast.getOrCreateInstance(document.getElementById('liveToast')).show();
         }
     });
+
+     // Modal display based on data attribute
+     if (document.querySelector('.bg-body-tertiary').dataset.orderSubmitted === "true") {
+        var myModal = new bootstrap.Modal(document.getElementById('orderConfirmationModal'));
+        myModal.show();
+    }
 });

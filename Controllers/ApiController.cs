@@ -26,5 +26,28 @@ namespace Northwind.Controllers
          [HttpPost, Route("api/addtocart")]
         // adds a row to the cartitem table
         public CartItem Post([FromBody] CartItemJSON cartItem) => _dataContext.AddToCart(cartItem);
+
+        [HttpDelete, Route("api/cart/remove/{productId}")]
+        public IActionResult RemoveFromCart(int productId)
+        {
+            try
+            {
+                // Assuming you have a method to remove the cart item
+                bool isRemoved = _dataContext.RemoveCartItem(productId);
+                if (isRemoved)
+                {
+                    return Ok(new { message = "Item removed successfully" });
+                }
+                else
+                {
+                    return NotFound(new { message = "Item not found" });
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log the exception details here to investigate the issue
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while removing the item" });
+            }
+        }
     }
 }

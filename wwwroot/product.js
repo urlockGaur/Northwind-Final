@@ -35,10 +35,13 @@ document.addEventListener("DOMContentLoaded", function() {
     const total = parseInt(document.getElementById('Quantity').value) * Number(document.getElementById('UnitPrice').innerHTML);
     document.getElementById('Total').innerHTML = numberWithCommas(total.toFixed(2));
   }
+
+  //----------------Cart Functionality----------------------------------------------------------------------------------------------------
   // update total when cart quantity is changed
   document.getElementById('Quantity').addEventListener("change", (e) => {
     display_total();
   });
+
   // function to display commas in number
   const numberWithCommas = x => x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   async function fetchProducts() {
@@ -69,6 +72,8 @@ document.addEventListener("DOMContentLoaded", function() {
     }
     postCartItem(item);
   });
+
+
   async function postCartItem(item) {
     axios.post('../../api/addtocart', item).then(res => {
       toast("Product Added", `${res.data.product.productName} successfully added to cart.`);
@@ -84,37 +89,61 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 
+
+//-------------------to display the cart-------------------
 async function fetchCartItems() {
   axios.get('../../customer/getcartitems')
   .then(response => {
-      console.log("Cart Items fetched:", response.data); // Check what data is received
       let cartRows = '';
-      console.log(response.data);
       response.data.forEach(item => {
-        // Ensure that unitPrice and quantity are numbers; otherwise, set them to undefined
-        const unitPrice = typeof item.unitPrice === 'number' ? item.unitPrice : undefined;
-        const quantity = typeof item.quantity === 'number' ? item.quantity : undefined;
-    
-        // Calculate total price only if both unitPrice and quantity are valid numbers
-        const totalPrice = (unitPrice !== undefined && quantity !== undefined) ? (quantity * unitPrice).toFixed(2) : 'N/A';
-    
-        cartRows += `
-            <tr>
-                <td>${item.productName}</td>
-                <td>$${unitPrice !== undefined ? unitPrice.toFixed(2) : 'N/A'}</td>
-                <td>
-                    <input type="number" value="${quantity !== undefined ? quantity : 1}" min="1" class="form-control qty" data-id="${item.productId}">
-                </td>
-                <td>$${totalPrice}</td>
-                <td>
-                    <button class="btn btn-danger remove-item" data-id="${item.productId}">Remove</button>
-                </td>
-            </tr>
-        `;
-    });
+          const unitPrice = typeof item.unitPrice === 'number' ? item.unitPrice : undefined;
+          const quantity = typeof item.quantity === 'number' ? item.quantity : undefined;
+          const totalPrice = (unitPrice !== undefined && quantity !== undefined) ? (quantity * unitPrice).toFixed(2) : 'N/A';
+      
+          cartRows += `
+              <tr>
+                  <td>${item.productName}</td>
+                  <td>$${unitPrice !== undefined ? unitPrice.toFixed(2) : 'N/A'}</td>
+                  <td>
+                      <input type="number" value="${quantity !== undefined ? quantity : 1}" min="1" class="form-control qty" data-id="${item.productId}">
+                  </td>
+                  <td>$${totalPrice}</td>
+                  <td>
+                      <button class="btn btn-danger remove-item" data-id="${item.productId}">Remove</button>
+                  </td>
+              </tr>
+          `;
+      });
       document.getElementById('cartItems').innerHTML = cartRows;
+      setupRemoveButtonListeners();
   })
   .catch(error => {
       console.error('Error fetching cart items:', error);
   });
+}
+
+//-------------------helper function to display the cart-------------------
+function setupRemoveButtonListeners() {
+  const cartTable = document.getElementById('cartItems');
+  cartTable.addEventListener('click', function(event) {
+      if (event.target.classList.contains('remove-item')) {
+          const itemId = event.target.getAttribute('data-id');
+          removeCartItem(itemId);
+      }
+  });
+}
+//-------------------Removing items from cart-------------------
+async function removeCartItem(productId) {
+  try {
+      const response = await axios.delete(`../../api/cart/remove/${productId}`);
+      if (response.status === 200) {
+          toast("Item Removed", "Item successfully removed from the cart.");
+          fetchCartItems(); // Refresh the cart display
+      } else {
+          throw new Error('Failed to remove the item');
+      }
+  } catch (error) {
+      console.error('Error removing cart item:', error);
+      toast("Error", "Failed to remove the item from the cart.");
+  }
 }

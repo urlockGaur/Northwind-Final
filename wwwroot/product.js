@@ -132,6 +132,7 @@ function setupRemoveButtonListeners() {
       }
   });
 }
+
 //-------------------Removing items from cart-------------------
 async function removeCartItem(productId) {
   try {

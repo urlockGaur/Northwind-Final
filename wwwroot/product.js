@@ -148,3 +148,45 @@ async function removeCartItem(productId) {
       toast("Error", "Failed to remove the item from the cart.");
   }
 }
+
+//-------------------Handling Modal Transitions for Cart and Checkout Modals-------------------
+
+document.getElementById('checkoutButton').addEventListener('click', function() {
+  fetchCartItems().then(() => {
+    populateOrderSummary();  // Function to populate order summary
+    $('#checkoutCartModal').modal('hide');
+    $('#checkoutProcessModal').modal('show');  // Show the checkout modal
+  });
+});
+
+function populateOrderSummary() {
+  const cartItems = document.getElementById('cartItems').cloneNode(true);
+  document.getElementById('orderSummary').innerHTML = '';  // Clear existing summary
+  document.getElementById('orderSummary').appendChild(cartItems);
+}
+
+// Add event listener to finalize the checkout process
+document.getElementById('finalizeCheckoutButton').addEventListener('click', async function() {
+  const shippingDetails = {
+    shipName: document.getElementById('shipName').value,
+    shipAddress: document.getElementById('shipAddress').value,
+    shipCity: document.getElementById('shipCity').value,
+    shipRegion: document.getElementById('shipRegion').value,
+    shipPostalCode: document.getElementById('shipPostalCode').value,
+    shipCountry: document.getElementById('shipCountry').value
+  };
+
+  try {
+    const response = await axios.post('../../api/checkout', { shippingDetails });
+    if (response.status === 200) {
+      toast("Checkout Successful", "Your order has been placed successfully.");
+      $('#checkoutProcessModal').modal('hide');
+      // Optionally, redirect to a confirmation page or reset the page state
+    } else {
+      throw new Error('Checkout failed.');
+    }
+  } catch (error) {
+    console.error('Error during checkout:', error);
+    toast("Checkout Error", "There was an issue placing your order. Please try again.");
+  }
+});

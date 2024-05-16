@@ -11,53 +11,53 @@ namespace Northwind.Controllers
         [HttpGet, Route("api/product")]
         // returns all products
         public IEnumerable<Product> Get() => _dataContext.Products.OrderBy(p => p.ProductName);
-          [HttpGet, Route("api/product/{id}")]
+        [HttpGet, Route("api/product/{id}")]
         // returns specific product
         public Product Get(int id) => _dataContext.Products.FirstOrDefault(p => p.ProductId == id);
         [HttpGet, Route("api/product/discontinued/{discontinued}")]
         // returns all products where discontinued = true/false
         public IEnumerable<Product> GetDiscontinued(bool discontinued) => _dataContext.Products.Where(p => p.Discontinued == discontinued).OrderBy(p => p.ProductName);
-         [HttpGet, Route("api/category/{CategoryId}/product")]
+        [HttpGet, Route("api/category/{CategoryId}/product")]
         // returns all products in a specific category
         public IEnumerable<Product> GetByCategory(int CategoryId) => _dataContext.Products.Where(p => p.CategoryId == CategoryId).OrderBy(p => p.ProductName);
-         [HttpGet, Route("api/category/{CategoryId}/product/discontinued/{discontinued}")]
+        [HttpGet, Route("api/category/{CategoryId}/product/discontinued/{discontinued}")]
         // returns all products in a specific category where discontinued = true/false
         public IEnumerable<Product> GetByCategoryDiscontinued(int CategoryId, bool discontinued) => _dataContext.Products.Where(p => p.CategoryId == CategoryId && p.Discontinued == discontinued).OrderBy(p => p.ProductName);
 
-         [HttpPost, Route("api/addtocart")]
+        [HttpPost, Route("api/addtocart")]
         // adds a row to the cartitem table
         public CartItem Post([FromBody] CartItemJSON cartItem) => _dataContext.AddToCart(cartItem);
 
         [HttpDelete, Route("api/cart/remove/{ProductId}")]
         [HttpDelete("cart/remove/{ProductId}")]
         public IActionResult RemoveFromCart(int productId)
-{
-    try
-    {
-        // Attempt to remove the cart item
-        if (!_dataContext.RemoveCartItem(productId))
         {
-            // Log that the item was not found
-            Console.WriteLine($"Item with productId {productId} not found.");
-            return NotFound(new { message = "Item not found" });
+            try
+            {
+                // Attempt to remove the cart item
+                if (!_dataContext.RemoveCartItem(productId))
+                {
+                    // Log that the item was not found
+                    Console.WriteLine($"Item with productId {productId} not found.");
+                    return NotFound(new { message = "Item not found" });
+                }
+
+                // Attempt to save changes to the database
+                _dataContext.SaveChanges();
+
+                // Return a success response
+                return Ok(new { message = "Item removed successfully" });
+            }
+            catch (Exception ex)
+            {
+                // Log the general exception details for debugging purposes
+                Console.WriteLine($"An error occurred while removing the item: {ex.Message}");
+                Console.WriteLine(ex.StackTrace);
+
+                // Return a server error response with the exception details
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while removing the item", detail = ex.Message });
+            }
         }
-
-        // Attempt to save changes to the database
-        _dataContext.SaveChanges();
-
-        // Return a success response
-        return Ok(new { message = "Item removed successfully" });
-    }
-    catch (Exception ex)
-    {
-        // Log the general exception details for debugging purposes
-        Console.WriteLine($"An error occurred while removing the item: {ex.Message}");
-        Console.WriteLine(ex.StackTrace);
-
-        // Return a server error response with the exception details
-        return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while removing the item", detail = ex.Message });
-    }
-}
 
         [HttpPost, Route("api/checkout")]
         public IActionResult Checkout([FromBody] CheckoutModel checkoutModel)
@@ -75,11 +75,11 @@ namespace Northwind.Controllers
             // Step 2: Create an Order
             var order = new Order
             {
-                CustomerId = checkoutModel.CustomerId, // Assumed to be provided or determined from user context
+                CustomerId = checkoutModel.CustomerId,
                 OrderDate = DateTime.Now,
                 RequiredDate = DateTime.Now.AddDays(7), // Example: required date is a week from order date
                 ShippedDate = null, // Initially null
-                ShipVia = 1, // Example: default shipping method
+                ShipVia = 1, // default shipping method?
                 ShipAddress = checkoutModel.ShippingDetails.ShipAddress,
                 ShipCity = checkoutModel.ShippingDetails.ShipCity,
                 ShipRegion = checkoutModel.ShippingDetails.ShipRegion,

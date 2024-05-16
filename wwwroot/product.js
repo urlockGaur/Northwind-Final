@@ -186,11 +186,11 @@ document.getElementById('finalizeCheckoutButton').addEventListener('click', asyn
       shipCountry: document.getElementById('shipCountry').value
   };
 
-  const cartItems = []; // Assume you gather this from your existing cart data
+  const cartItems = [];
 
   try {
       const response = await axios.post('../../api/checkout', {
-          customerId: 1, // This should be dynamically determined
+          customerId: 1, // This should be dynamically determined. Current state creates order with this customerId of 1. 
           shippingDetails: shippingDetails,
           cartItems: cartItems
       });

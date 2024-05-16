@@ -10,7 +10,7 @@ public class DataContext : DbContext
   public DbSet<Customer> Customers { get; set; }
   public DbSet<CartItem> CartItems { get; set; }
    public DbSet<Order> Orders { get; set; }
-    public DbSet<OrderDetail> OrderDetails { get; set; }
+  public DbSet<OrderDetail> OrderDetails { get; set; }
   
   
 
@@ -59,15 +59,27 @@ public class DataContext : DbContext
     cartItem.Product = Products.Find(cartItem.ProductId);
     return cartItem;
   }
-  public bool RemoveCartItem(int productId)
-{
-    var item = CartItems.FirstOrDefault(ci => ci.ProductId == productId);
-    if (item != null)
+   public bool RemoveCartItem(int productId)
     {
-        CartItems.Remove(item);
-        SaveChanges();
+        var cartItem = CartItems.SingleOrDefault(item => item.ProductId == productId);
+        if (cartItem == null)
+        {
+            return false;
+        }
+
+        CartItems.Remove(cartItem);
         return true;
     }
-    return false;
+
+
+  protected override void OnModelCreating(ModelBuilder modelBuilder)
+{
+    base.OnModelCreating(modelBuilder);
+
+    // Configure the primary key for OrderDetail
+    modelBuilder.Entity<OrderDetail>().HasKey(od => od.OrderDetailsId);
+
+    modelBuilder.Entity<CartItem>().HasKey(ci => ci.CartItemId);
+
 }
 }

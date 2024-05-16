@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Northwind.Controllers
 {
+
     public class APIController(DataContext db) : Controller
     {
         // this controller depends on the NorthwindRepository
@@ -28,28 +29,96 @@ namespace Northwind.Controllers
         public CartItem Post([FromBody] CartItemJSON cartItem) => _dataContext.AddToCart(cartItem);
 
         [HttpDelete, Route("api/cart/remove/{productId}")]
+        [HttpDelete("cart/remove/{productId}")]
         public IActionResult RemoveFromCart(int productId)
+{
+    try
+    {
+        // Attempt to remove the cart item
+        if (!_dataContext.RemoveCartItem(productId))
         {
-            try
-            {
-                // Assuming you have a method to remove the cart item
-                bool isRemoved = _dataContext.RemoveCartItem(productId);
-                if (isRemoved)
-                {
-                    return Ok(new { message = "Item removed successfully" });
-                }
-                else
-                {
-                    return NotFound(new { message = "Item not found" });
-                }
-            }
-            catch (Exception ex)
-            {
-                // Log the exception details here to investigate the issue
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while removing the item" });
-            }
+            // Log that the item was not found
+            Console.WriteLine($"Item with productId {productId} not found.");
+            return NotFound(new { message = "Item not found" });
         }
 
-    
+        // Attempt to save changes to the database
+        _dataContext.SaveChanges();
+
+        // Return a success response
+        return Ok(new { message = "Item removed successfully" });
+    }
+    catch (Exception ex)
+    {
+        // Log the general exception details for debugging purposes
+        Console.WriteLine($"An error occurred while removing the item: {ex.Message}");
+        Console.WriteLine(ex.StackTrace);
+
+        // Return a server error response with the exception details
+        return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while removing the item", detail = ex.Message });
+    }
+}
+
+        [HttpPost, Route("api/checkout")]
+        public IActionResult Checkout([FromBody] CheckoutModel checkoutModel)
+        {
+            // Step 1: Validate Shipping Details
+            if (string.IsNullOrWhiteSpace(checkoutModel.ShippingDetails.ShipName) ||
+                string.IsNullOrWhiteSpace(checkoutModel.ShippingDetails.ShipAddress) ||
+                string.IsNullOrWhiteSpace(checkoutModel.ShippingDetails.ShipCity) ||
+                string.IsNullOrWhiteSpace(checkoutModel.ShippingDetails.ShipPostalCode) ||
+                string.IsNullOrWhiteSpace(checkoutModel.ShippingDetails.ShipCountry))
+            {
+                return BadRequest("All shipping details must be provided.");
+            }
+
+            // Step 2: Create an Order
+            var order = new Order
+            {
+                CustomerId = checkoutModel.CustomerId, // Assumed to be provided or determined from user context
+                OrderDate = DateTime.Now,
+                RequiredDate = DateTime.Now.AddDays(7), // Example: required date is a week from order date
+                ShippedDate = null, // Initially null
+                ShipVia = 1, // Example: default shipping method
+                ShipAddress = checkoutModel.ShippingDetails.ShipAddress,
+                ShipCity = checkoutModel.ShippingDetails.ShipCity,
+                ShipRegion = checkoutModel.ShippingDetails.ShipRegion,
+                ShipPostalCode = checkoutModel.ShippingDetails.ShipPostalCode,
+                ShipCountry = checkoutModel.ShippingDetails.ShipCountry
+            };
+            _dataContext.Orders.Add(order);
+            _dataContext.SaveChanges();
+
+            // Step 3: Create OrderDetails
+            foreach (var item in checkoutModel.CartItems)
+            {
+                var orderDetail = new OrderDetail
+                {
+                    OrderId = order.OrderId,
+                    ProductId = item.ProductId,
+                    UnitPrice = item.UnitPrice,
+                    Quantity = item.Quantity,
+                    Discount = item.Discount
+                };
+                _dataContext.OrderDetails.Add(orderDetail);
+
+                // Step 4: Adjust Stock Levels
+                var product = _dataContext.Products.FirstOrDefault(p => p.ProductId == item.ProductId);
+                if (product != null)
+                {
+                    product.UnitsInStock -= (short)item.Quantity;
+                }
+            }
+
+            // Save changes for OrderDetails and stock adjustment
+            _dataContext.SaveChanges();
+
+            // Step 5: Clear Cart Items
+            var cartItems = _dataContext.CartItems.Where(ci => ci.CustomerId == checkoutModel.CustomerId);
+            _dataContext.CartItems.RemoveRange(cartItems);
+            _dataContext.SaveChanges();
+
+            return Ok("Order placed successfully");
+        }
     }
 }

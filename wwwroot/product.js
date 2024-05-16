@@ -85,7 +85,7 @@ document.addEventListener("DOMContentLoaded", function() {
     var cartButton = document.querySelector('.cart-indicator button');
     cartButton.addEventListener('click', function() {
         fetchCartItems(); // Fetch the latest cart items
-        updateCartCount(); // Optionally update the cart count if it's dynamic
+        
     });
 });
 
@@ -136,15 +136,25 @@ function setupRemoveButtonListeners() {
 //-------------------Removing items from cart-------------------
 async function removeCartItem(productId) {
   try {
-      const response = await axios.delete(`../../api/cart/remove/${productId}`);
+      // Send a DELETE request to the backend to remove the cart item
+      const response = await axios.delete(`/api/cart/remove/${productId}`);
+      
+      // Check if the response status is 200 (OK)
       if (response.status === 200) {
+          // Notify the user of the successful removal
           toast("Item Removed", "Item successfully removed from the cart.");
-          fetchCartItems(); // Refresh the cart display
+          
+          // Refresh the cart display
+          fetchCartItems();
       } else {
+          // If the response status is not 200, throw an error
           throw new Error('Failed to remove the item');
       }
   } catch (error) {
-      console.error('Error removing cart item:', error);
+      // Log the error details to the console for debugging purposes
+      console.error('Error removing cart item:', error.response.data);
+      
+      // Notify the user of the error
       toast("Error", "Failed to remove the item from the cart.");
   }
 }
@@ -168,25 +178,30 @@ function populateOrderSummary() {
 // Add event listener to finalize the checkout process
 document.getElementById('finalizeCheckoutButton').addEventListener('click', async function() {
   const shippingDetails = {
-    shipName: document.getElementById('shipName').value,
-    shipAddress: document.getElementById('shipAddress').value,
-    shipCity: document.getElementById('shipCity').value,
-    shipRegion: document.getElementById('shipRegion').value,
-    shipPostalCode: document.getElementById('shipPostalCode').value,
-    shipCountry: document.getElementById('shipCountry').value
+      shipName: document.getElementById('shipName').value,
+      shipAddress: document.getElementById('shipAddress').value,
+      shipCity: document.getElementById('shipCity').value,
+      shipRegion: document.getElementById('shipRegion').value,
+      shipPostalCode: document.getElementById('shipPostalCode').value,
+      shipCountry: document.getElementById('shipCountry').value
   };
 
+  const cartItems = []; // Assume you gather this from your existing cart data
+
   try {
-    const response = await axios.post('../../api/checkout', { shippingDetails });
-    if (response.status === 200) {
-      toast("Checkout Successful", "Your order has been placed successfully.");
-      $('#checkoutProcessModal').modal('hide');
-      // Optionally, redirect to a confirmation page or reset the page state
-    } else {
-      throw new Error('Checkout failed.');
-    }
+      const response = await axios.post('../../api/checkout', {
+          customerId: 1, // This should be dynamically determined
+          shippingDetails: shippingDetails,
+          cartItems: cartItems
+      });
+      if (response.status === 200) {
+          toast("Checkout Successful", "Your order has been placed successfully.");
+          $('#checkoutProcessModal').modal('hide');
+      } else {
+          throw new Error('Checkout failed.');
+      }
   } catch (error) {
-    console.error('Error during checkout:', error);
-    toast("Checkout Error", "There was an issue placing your order. Please try again.");
+      console.error('Error during checkout:', error);
+      toast("Checkout Error", "There was an issue placing your order. Please try again.");
   }
 });

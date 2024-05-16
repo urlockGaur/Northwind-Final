@@ -28,8 +28,8 @@ namespace Northwind.Controllers
         // adds a row to the cartitem table
         public CartItem Post([FromBody] CartItemJSON cartItem) => _dataContext.AddToCart(cartItem);
 
-        [HttpDelete, Route("api/cart/remove/{productId}")]
-        [HttpDelete("cart/remove/{productId}")]
+        [HttpDelete, Route("api/cart/remove/{ProductId}")]
+        [HttpDelete("cart/remove/{ProductId}")]
         public IActionResult RemoveFromCart(int productId)
 {
     try
